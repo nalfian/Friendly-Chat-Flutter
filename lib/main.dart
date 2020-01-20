@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 final googleSignIn = GoogleSignIn();
+final analytic = new FirebaseAnalytics();
 
 void main() {
   runApp(FriendlyChatApp());
@@ -39,6 +41,7 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     GoogleSignInAccount user = googleSignIn.currentUser;
     if (user == null) user = await googleSignIn.signInSilently();
     if (user == null) await googleSignIn.signIn();
+    analytic.logLogin();
   }
 
   Widget _buildTextComposer() {
@@ -143,6 +146,7 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       _messages.insert(0, message);
     });
     message.animationController.forward();
+    analytic.logEvent(name: 'send_message');
   }
 }
 
