@@ -4,9 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 final googleSignIn = GoogleSignIn();
-final analytic = new FirebaseAnalytics();
+final analytic = FirebaseAnalytics();
+final auth = FirebaseAuth.instance;
 
 void main() {
   runApp(FriendlyChatApp());
@@ -42,11 +44,18 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     if (user == null) user = await googleSignIn.signInSilently();
     if (user == null) await googleSignIn.signIn();
     analytic.logLogin();
+    if (await auth.currentUser() == null) {
+      GoogleSignInAuthentication authentication = await googleSignIn.currentUser.authentication;
+      await auth.signInWithCredential(GoogleAuthProvider
+          .getCredential(idToken: authentication.idToken, accessToken: authentication.accessToken));
+    }
   }
 
   Widget _buildTextComposer() {
     return IconTheme(
-      data: IconThemeData(color: Theme.of(context).accentColor),
+      data: IconThemeData(color: Theme
+          .of(context)
+          .accentColor),
       child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 8.0),
           child: Row(
@@ -61,24 +70,26 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   },
                   onSubmitted: _handleSubmitted,
                   decoration:
-                      InputDecoration.collapsed(hintText: "Send a message"),
+                  InputDecoration.collapsed(hintText: "Send a message"),
                 ),
               ),
               Container(
                   margin: EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Theme.of(context).platform == TargetPlatform.iOS
+                  child: Theme
+                      .of(context)
+                      .platform == TargetPlatform.iOS
                       ? CupertinoButton(
-                          child: new Text("Send"),
-                          onPressed: _isComposing
-                              ? () => _handleSubmitted(_textController.text)
-                              : null,
-                        )
+                    child: new Text("Send"),
+                    onPressed: _isComposing
+                        ? () => _handleSubmitted(_textController.text)
+                        : null,
+                  )
                       : IconButton(
-                          icon: Icon(Icons.send),
-                          onPressed: _isComposing
-                              ? () => _handleSubmitted(_textController.text)
-                              : null,
-                        )),
+                    icon: Icon(Icons.send),
+                    onPressed: _isComposing
+                        ? () => _handleSubmitted(_textController.text)
+                        : null,
+                  )),
             ],
           )),
     );
@@ -98,7 +109,9 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     return Scaffold(
       appBar: AppBar(
         title: Text("Friendly Chat"),
-        elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
+        elevation: Theme
+            .of(context)
+            .platform == TargetPlatform.iOS ? 0.0 : 4.0,
       ),
       body: Container(
           child: Column(
@@ -113,17 +126,21 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               ),
               Divider(height: 1.0),
               Container(
-                decoration: BoxDecoration(color: Theme.of(context).cardColor),
+                decoration: BoxDecoration(color: Theme
+                    .of(context)
+                    .cardColor),
                 child: _buildTextComposer(),
               )
             ],
           ),
-          decoration: Theme.of(context).platform == TargetPlatform.iOS
+          decoration: Theme
+              .of(context)
+              .platform == TargetPlatform.iOS
               ? BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: Colors.grey[200]),
-                  ),
-                )
+            border: Border(
+              top: BorderSide(color: Colors.grey[200]),
+            ),
+          )
               : null),
     );
   }
@@ -172,7 +189,8 @@ class ChatMessage extends StatelessWidget {
             Container(
               margin: EdgeInsets.only(right: 16.0),
               child: CircleAvatar(
-                backgroundImage: NetworkImage(googleSignIn.currentUser.photoUrl),
+                backgroundImage: NetworkImage(
+                    googleSignIn.currentUser.photoUrl),
               ),
             ),
             Expanded(
@@ -181,7 +199,10 @@ class ChatMessage extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     googleSignIn.currentUser.displayName,
-                    style: Theme.of(context).textTheme.subhead,
+                    style: Theme
+                        .of(context)
+                        .textTheme
+                        .subhead,
                   ),
                   Container(
                     margin: const EdgeInsets.only(top: 5.0),
