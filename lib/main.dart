@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:async';
+
+final googleSignIn = GoogleSignIn();
 
 void main() {
   runApp(FriendlyChatApp());
@@ -30,6 +34,12 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final List<ChatMessage> _messages = <ChatMessage>[];
   final _textController = TextEditingController();
   bool _isComposing = false;
+
+  Future<Null> _ensureLoggedIn() async {
+    GoogleSignInAccount user = googleSignIn.currentUser;
+    if (user == null) user = await googleSignIn.signInSilently();
+    if (user == null) await googleSignIn.signIn();
+  }
 
   Widget _buildTextComposer() {
     return IconTheme(
@@ -71,21 +81,13 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _handleSubmitted(String text) {
+  Future<Null> _handleSubmitted(String text) async {
     _textController.clear();
     setState(() {
       _isComposing = false;
     });
-    ChatMessage message = ChatMessage(
-        text,
-        AnimationController(
-          duration: new Duration(milliseconds: 700),
-          vsync: this,
-        ));
-    setState(() {
-      _messages.insert(0, message);
-    });
-    message.animationController.forward();
+    await _ensureLoggedIn();
+    _sendMessage(text);
   }
 
   @override
@@ -129,9 +131,20 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       message.animationController.dispose();
     super.dispose();
   }
-}
 
-const String _name = "Nur Alfian Julianda";
+  void _sendMessage(String text) {
+    ChatMessage message = ChatMessage(
+        text,
+        AnimationController(
+          duration: new Duration(milliseconds: 700),
+          vsync: this,
+        ));
+    setState(() {
+      _messages.insert(0, message);
+    });
+    message.animationController.forward();
+  }
+}
 
 class ChatMessage extends StatelessWidget {
   ChatMessage(this.text, this.animationController);
@@ -155,7 +168,7 @@ class ChatMessage extends StatelessWidget {
             Container(
               margin: EdgeInsets.only(right: 16.0),
               child: CircleAvatar(
-                child: Text(_name[0]),
+                backgroundImage: NetworkImage(googleSignIn.currentUser.photoUrl),
               ),
             ),
             Expanded(
@@ -163,7 +176,7 @@ class ChatMessage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    _name,
+                    googleSignIn.currentUser.displayName,
                     style: Theme.of(context).textTheme.subhead,
                   ),
                   Container(
