@@ -23,7 +23,7 @@ class FriendlyChatApp extends StatelessWidget {
     return MaterialApp(
       title: "Friendlyc Chat",
       theme: defaultTargetPlatform == TargetPlatform.iOS
-          ? kIOSTheme
+          ? kDefaultTheme
           : kDefaultTheme,
       home: ChatScreen(),
     );
@@ -47,17 +47,17 @@ class ChatScreenState extends State<ChatScreen> {
     if (user == null) await googleSignIn.signIn();
     analytic.logLogin();
     if (await auth.currentUser() == null) {
-      GoogleSignInAuthentication authentication = await googleSignIn.currentUser.authentication;
-      await auth.signInWithCredential(GoogleAuthProvider
-          .getCredential(idToken: authentication.idToken, accessToken: authentication.accessToken));
+      GoogleSignInAuthentication authentication =
+          await googleSignIn.currentUser.authentication;
+      await auth.signInWithCredential(GoogleAuthProvider.getCredential(
+          idToken: authentication.idToken,
+          accessToken: authentication.accessToken));
     }
   }
 
   Widget _buildTextComposer() {
     return IconTheme(
-      data: IconThemeData(color: Theme
-          .of(context)
-          .accentColor),
+      data: IconThemeData(color: Theme.of(context).accentColor),
       child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 8.0),
           child: Row(
@@ -72,21 +72,12 @@ class ChatScreenState extends State<ChatScreen> {
                   },
                   onSubmitted: _handleSubmitted,
                   decoration:
-                  InputDecoration.collapsed(hintText: "Send a message"),
+                      InputDecoration.collapsed(hintText: "Send a message"),
                 ),
               ),
               Container(
                   margin: EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Theme
-                      .of(context)
-                      .platform == TargetPlatform.iOS
-                      ? CupertinoButton(
-                    child: new Text("Send"),
-                    onPressed: _isComposing
-                        ? () => _handleSubmitted(_textController.text)
-                        : null,
-                  )
-                      : IconButton(
+                  child: IconButton(
                     icon: Icon(Icons.send),
                     onPressed: _isComposing
                         ? () => _handleSubmitted(_textController.text)
@@ -111,9 +102,7 @@ class ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Friendly Chat"),
-        elevation: Theme
-            .of(context)
-            .platform == TargetPlatform.iOS ? 0.0 : 4.0,
+        elevation: 4.0,
       ),
       body: Container(
           child: Column(
@@ -134,22 +123,12 @@ class ChatScreenState extends State<ChatScreen> {
               ),
               Divider(height: 1.0),
               Container(
-                decoration: BoxDecoration(color: Theme
-                    .of(context)
-                    .cardColor),
+                decoration: BoxDecoration(color: Theme.of(context).cardColor),
                 child: _buildTextComposer(),
               )
             ],
           ),
-          decoration: Theme
-              .of(context)
-              .platform == TargetPlatform.iOS
-              ? BoxDecoration(
-            border: Border(
-              top: BorderSide(color: Colors.grey[200]),
-            ),
-          )
-              : null),
+          decoration: null),
     );
   }
 
@@ -179,37 +158,69 @@ class ChatMessage extends StatelessWidget {
       axisAlignment: 0.0,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 10.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Container(
-              margin: EdgeInsets.only(right: 16.0),
-              child: CircleAvatar(
-                backgroundImage: NetworkImage(
-                    snapshot.value['senderPhotoUrl']),
-              ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    snapshot.value['senderName'],
-                    style: Theme
-                        .of(context)
-                        .textTheme
-                        .subhead,
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 5.0),
-                    child: Text(snapshot.value['text']),
-                  )
-                ],
-              ),
-            )
-          ],
-        ),
+        child:
+            snapshot.value['senderName'] == googleSignIn.currentUser.displayName
+                ? buildMyRow(context)
+                : buildOtherRow(context),
       ),
+    );
+  }
+
+  Widget buildMyRow(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Text(
+                snapshot.value['senderName'],
+                style: Theme.of(context).textTheme.subhead,
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 5.0),
+                child: Text(snapshot.value['text']),
+              )
+            ],
+          ),
+        ),
+        Container(
+          margin: EdgeInsets.only(left: 16.0),
+          child: CircleAvatar(
+            backgroundImage: NetworkImage(snapshot.value['senderPhotoUrl']),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildOtherRow(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          margin: EdgeInsets.only(right: 16.0),
+          child: CircleAvatar(
+            backgroundImage: NetworkImage(snapshot.value['senderPhotoUrl']),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                snapshot.value['senderName'],
+                style: Theme.of(context).textTheme.subhead,
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 5.0),
+                child: Text(snapshot.value['text']),
+              )
+            ],
+          ),
+        )
+      ],
     );
   }
 }
