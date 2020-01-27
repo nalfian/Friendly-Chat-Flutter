@@ -5,10 +5,13 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_database/ui/firebase_animated_list.dart';
 
 final googleSignIn = GoogleSignIn();
 final analytic = FirebaseAnalytics();
 final auth = FirebaseAuth.instance;
+final reference = FirebaseDatabase.instance.reference().child('messages');
 
 void main() {
   runApp(FriendlyChatApp());
@@ -34,8 +37,7 @@ class ChatScreen extends StatefulWidget {
   }
 }
 
-class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
-  final List<ChatMessage> _messages = <ChatMessage>[];
+class ChatScreenState extends State<ChatScreen> {
   final _textController = TextEditingController();
   bool _isComposing = false;
 
@@ -117,11 +119,17 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           child: Column(
             children: <Widget>[
               Flexible(
-                child: ListView.builder(
+                child: FirebaseAnimatedList(
+                  query: reference,
                   padding: EdgeInsets.all(8.0),
                   reverse: true,
-                  itemBuilder: (_, int index) => _messages[index],
-                  itemCount: _messages.length,
+                  itemBuilder: (_, DataSnapshot snapshot,
+                      Animation<double> animation, int x) {
+                    return ChatMessage(
+                      snapshot: snapshot,
+                      animation: animation,
+                    );
+                  },
                 ),
               ),
               Divider(height: 1.0),
@@ -145,39 +153,27 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  @override
-  void dispose() {
-    for (ChatMessage message in _messages)
-      message.animationController.dispose();
-    super.dispose();
-  }
-
   void _sendMessage(String text) {
-    ChatMessage message = ChatMessage(
-        text,
-        AnimationController(
-          duration: new Duration(milliseconds: 700),
-          vsync: this,
-        ));
-    setState(() {
-      _messages.insert(0, message);
+    reference.push().set({
+      "text": text,
+      "senderName": googleSignIn.currentUser.displayName,
+      "senderPhotoUrl": googleSignIn.currentUser.photoUrl
     });
-    message.animationController.forward();
     analytic.logEvent(name: 'send_message');
   }
 }
 
 class ChatMessage extends StatelessWidget {
-  ChatMessage(this.text, this.animationController);
+  ChatMessage({this.snapshot, this.animation});
 
-  final String text;
-  final AnimationController animationController;
+  final DataSnapshot snapshot;
+  final Animation animation;
 
   @override
   Widget build(BuildContext context) {
     return SizeTransition(
       sizeFactor: CurvedAnimation(
-        parent: animationController,
+        parent: animation,
         curve: Curves.easeOut,
       ),
       axisAlignment: 0.0,
@@ -190,7 +186,7 @@ class ChatMessage extends StatelessWidget {
               margin: EdgeInsets.only(right: 16.0),
               child: CircleAvatar(
                 backgroundImage: NetworkImage(
-                    googleSignIn.currentUser.photoUrl),
+                    snapshot.value['senderPhotoUrl']),
               ),
             ),
             Expanded(
@@ -198,7 +194,7 @@ class ChatMessage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    googleSignIn.currentUser.displayName,
+                    snapshot.value['senderName'],
                     style: Theme
                         .of(context)
                         .textTheme
@@ -206,7 +202,7 @@ class ChatMessage extends StatelessWidget {
                   ),
                   Container(
                     margin: const EdgeInsets.only(top: 5.0),
-                    child: Text(text),
+                    child: Text(snapshot.value['text']),
                   )
                 ],
               ),
